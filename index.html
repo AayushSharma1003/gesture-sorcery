@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Relic — gesture sorcery</title>
+<style>
+  :root{
+    --gold:#f5c96a;
+    --gold-dim:#8a6c33;
+    --gold-deep:#3a2c12;
+    --parch:#efe2bf;
+    --blast:#5ec8ff;
+    --fire:#ff9a3c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#0c0903;
+    font-family:Georgia,'Times New Roman',serif;color:var(--parch)}
+  video{display:none}
+  .mono{font-family:"SF Mono","JetBrains Mono",ui-monospace,monospace}
+
+  /* ===================== THE TEMPLE ===================== */
+  #temple{position:fixed;inset:0;overflow:hidden;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 18%, rgba(255,205,110,.16), transparent 60%),
+      linear-gradient(180deg,#1c1306 0%,#241808 35%,#150e05 75%,#0c0903 100%)}
+  #temple.hidden{display:none}
+
+  /* god rays */
+  #rays{position:absolute;inset:-20% 0 0 0;pointer-events:none;opacity:.5;
+    background:
+      conic-gradient(from 178deg at 50% -10%,
+        transparent 0deg, rgba(255,222,140,.10) 4deg, transparent 9deg,
+        transparent 14deg, rgba(255,222,140,.07) 18deg, transparent 23deg,
+        transparent 30deg, rgba(255,222,140,.09) 34deg, transparent 39deg);
+    animation:raysway 14s ease-in-out infinite alternate}
+  @keyframes raysway{to{transform:rotate(3deg)}}
+
+  /* pillars */
+  .pillar{position:absolute;top:0;bottom:18%;width:9%;
+    background:linear-gradient(90deg,#0e0a04 0%,#2e2310 22%,#4a3a1c 50%,#2e2310 78%,#0e0a04 100%);
+    box-shadow:0 0 40px rgba(0,0,0,.6)}
+  .pillar::before{content:"";position:absolute;left:-12%;right:-12%;top:0;height:26px;
+    background:linear-gradient(180deg,#574321,#2e2310);border-radius:0 0 6px 6px}
+  .pillar::after{content:"";position:absolute;left:-12%;right:-12%;bottom:0;height:30px;
+    background:linear-gradient(180deg,#2e2310,#574321);border-radius:6px 6px 0 0}
+  #p1{left:4%}  #p2{left:20%;transform:scale(.86);opacity:.8}
+  #p3{right:4%} #p4{right:20%;transform:scale(.86);opacity:.8}
+
+  /* floor */
+  #floor{position:absolute;left:0;right:0;bottom:0;height:20%;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 110px, rgba(0,0,0,.25) 110px 114px),
+      linear-gradient(180deg,#33270f 0%,#1c1407 40%,#0e0a04 100%)}
+  #floor::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:rgba(255,220,140,.18)}
+
+  /* dust motes */
+  .mote{position:absolute;width:3px;height:3px;border-radius:50%;
+    background:rgba(255,228,160,.5);filter:blur(.5px);
+    animation:drift linear infinite}
+  @keyframes drift{
+    0%{transform:translate(0,0);opacity:0}
+    12%{opacity:.7} 88%{opacity:.5}
+    100%{transform:translate(var(--dx),var(--dy));opacity:0}}
+
+  /* pedestal + orb */
+  #pedestal{position:absolute;left:50%;bottom:17%;transform:translateX(-50%);
+    width:120px;text-align:center}
+  #ped-top{width:120px;height:18px;margin:0 auto;border-radius:4px;
+    background:linear-gradient(180deg,#6e5526,#3a2c12)}
+  #ped-col{width:74px;height:150px;margin:0 auto;
+    background:linear-gradient(90deg,#241a0a,#54401d 50%,#241a0a);
+    border-left:3px solid #150e05;border-right:3px solid #150e05}
+  #ped-base{width:140px;height:22px;margin:0 auto;border-radius:4px;
+    background:linear-gradient(180deg,#54401d,#241a0a)}
+  #orb{position:absolute;left:50%;top:-74px;transform:translateX(-50%);
+    width:64px;height:64px;border-radius:50%;cursor:pointer;
+    background:radial-gradient(circle at 36% 32%, #fff7dd 0%, #ffd97a 28%, #d99a2b 62%, #7a4f10 100%);
+    box-shadow:0 0 34px 10px rgba(255,205,100,.45), 0 0 90px 30px rgba(255,190,80,.18);
+    animation:orbfloat 4.2s ease-in-out infinite}
+  #orb.gone{display:none}
+  @keyframes orbfloat{50%{transform:translateX(-50%) translateY(-10px)}}
+
+  /* old man */
+  #oldman{position:absolute;left:62%;bottom:17.5%;width:120px;height:230px;
+    animation:sway 5.5s ease-in-out infinite}
+  @keyframes sway{50%{transform:rotate(1.2deg)}}
+  #om-head{position:absolute;left:38px;top:0;width:34px;height:36px;border-radius:50% 50% 46% 46%;
+    background:linear-gradient(135deg,#5a452a,#33250f)}
+  #om-beard{position:absolute;left:40px;top:26px;width:30px;height:44px;
+    border-radius:40% 40% 50% 50%/30% 30% 70% 70%;
+    background:linear-gradient(180deg,#cfc3a8,#8d8268)}
+  #om-body{position:absolute;left:18px;top:48px;width:74px;height:182px;
+    border-radius:36px 40px 8px 8px/60px 60px 8px 8px;
+    background:linear-gradient(135deg,#4a3717 0%,#2a1e0b 70%);
+    box-shadow:inset -10px 0 18px rgba(0,0,0,.5), inset 4px 6px 10px rgba(255,210,120,.12)}
+  #om-staff{position:absolute;left:0;top:18px;width:6px;height:212px;border-radius:3px;
+    background:linear-gradient(180deg,#6e5526,#33250f);transform:rotate(-4deg)}
+  #om-staff::before{content:"";position:absolute;top:-12px;left:-5px;width:16px;height:16px;
+    border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffefc0,#c89030);
+    box-shadow:0 0 12px rgba(255,220,140,.6)}
+
+  /* dialog */
+  #dialog{position:absolute;left:50%;top:9%;transform:translateX(-50%);
+    max-width:min(540px, 86vw);padding:18px 26px;text-align:center;
+    background:linear-gradient(180deg, rgba(38,28,12,.94), rgba(24,17,7,.94));
+    border:1px solid var(--gold-dim);border-radius:6px;
+    box-shadow:0 8px 40px rgba(0,0,0,.6), inset 0 0 30px rgba(255,205,100,.05);
+    font-size:clamp(15px,2.1vmin,20px);line-height:1.65;font-style:italic;color:var(--parch)}
+  #dialog::after{content:"";position:absolute;left:58%;bottom:-9px;width:16px;height:16px;
+    transform:rotate(45deg);background:#181107;border-right:1px solid var(--gold-dim);
+    border-bottom:1px solid var(--gold-dim)}
+  #dialog small{display:block;margin-top:8px;font-style:normal;
+    font-size:.72em;letter-spacing:.18em;color:var(--gold-dim);text-transform:uppercase}
+
+  #choices{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);
+    display:flex;gap:22px}
+  .choice{cursor:pointer;font:inherit;font-size:clamp(13px,1.8vmin,17px);
+    letter-spacing:.16em;text-transform:uppercase;padding:14px 30px;border-radius:3px;
+    transition:all .2s}
+  #obtain{color:#1c1306;background:linear-gradient(180deg,#ffd98a,#c89a3e);
+    border:1px solid #ffeebc;box-shadow:0 0 26px rgba(255,205,100,.35)}
+  #obtain:hover{box-shadow:0 0 44px rgba(255,205,100,.6);transform:translateY(-1px)}
+  #leave{color:var(--gold-dim);background:transparent;border:1px solid var(--gold-deep)}
+  #leave:hover{color:var(--parch);border-color:var(--gold-dim)}
+  .choice:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  /* grab animation */
+  #grab{position:absolute;left:50%;bottom:-40%;width:90px;height:60%;
+    transform:translateX(-160%);pointer-events:none;opacity:0}
+  #grab .arm{position:absolute;left:34px;top:60px;width:26px;height:100%;
+    background:linear-gradient(90deg,#1a1208,#33250f,#1a1208);border-radius:13px}
+  #grab .hand{position:absolute;left:18px;top:6px;width:58px;height:62px;
+    border-radius:46% 46% 40% 40%;
+    background:linear-gradient(135deg,#3d2d13,#241a0a)}
+  #grab.go{animation:grabup 1.5s cubic-bezier(.5,.05,.3,1) forwards}
+  @keyframes grabup{
+    0%{opacity:0;bottom:-40%}
+    25%{opacity:1}
+    100%{opacity:1;bottom:33%}}
+
+  #flash{position:fixed;inset:0;z-index:40;background:#ffeebc;opacity:0;pointer-events:none}
+  #flash.go{animation:flashout 1.1s ease-out forwards}
+  @keyframes flashout{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+
+  /* leave / fade screen */
+  #fade{position:fixed;inset:0;z-index:50;background:#000;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:30px;
+    text-align:center;font-style:italic;font-size:clamp(16px,2.4vmin,24px);
+    color:#9c8a5e}
+  #fade.show{display:flex;animation:fadein 2.2s ease forwards}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  #reconsider{display:none;cursor:pointer;font:inherit;font-size:.7em;
+    letter-spacing:.2em;color:var(--gold-dim);background:none;
+    border:1px solid var(--gold-deep);padding:12px 26px;text-transform:uppercase}
+  #reconsider:hover{color:var(--parch)}
+
+  /* ===================== POWER MODE ===================== */
+  #powerscene{position:fixed;inset:0;display:none}
+  #powerscene.show{display:block}
+  #stage{position:absolute;inset:0;width:100%;height:100%}
+
+  .phud{position:absolute;z-index:5;pointer-events:none;
+    font-size:clamp(11px,1.4vmin,14px);letter-spacing:.12em;color:#b39a5e;
+    text-shadow:0 1px 6px rgba(0,0,0,.8)}
+  #vit-wrap{top:3%;left:50%;transform:translateX(-50%);text-align:center;
+    text-transform:uppercase;font-size:clamp(9px,1.1vmin,12px)}
+  #vit-bar{width:min(300px,44vw);height:7px;margin-top:6px;border-radius:4px;
+    background:rgba(20,14,5,.8);border:1px solid var(--gold-deep);overflow:hidden}
+  #vit-fill{height:100%;width:100%;border-radius:3px;
+    background:linear-gradient(90deg,#c89a3e,#ffd98a);transition:width .25s}
+  #powers{bottom:3.5%;left:3%;line-height:2.05;font-style:italic}
+  #powers .p::before{content:"· "}
+  #powers .p.active{color:var(--gold)}
+  #powers .p.active::before{content:"✦ "}
+  #voice-hud{bottom:3.5%;right:3%;text-align:right;line-height:2.05}
+  #voice-hud em{font-style:normal;color:var(--gold)}
+  #amp-banner{top:10%;left:50%;transform:translateX(-50%);
+    font-size:clamp(13px,2vmin,20px);letter-spacing:.3em;color:var(--gold);
+    text-transform:uppercase;opacity:0;transition:opacity .3s}
+  #amp-banner.show{opacity:1}
+
+  @media (prefers-reduced-motion: reduce){
+    #rays,.mote,#orb,#oldman{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<video id="cam" playsinline></video>
+
+<!-- ===================== TEMPLE ===================== -->
+<div id="temple">
+  <div id="rays"></div>
+  <div class="pillar" id="p1"></div><div class="pillar" id="p2"></div>
+  <div class="pillar" id="p3"></div><div class="pillar" id="p4"></div>
+  <div id="floor"></div>
+
+  <div id="pedestal">
+    <div id="orb"></div>
+    <div id="ped-top"></div><div id="ped-col"></div><div id="ped-base"></div>
+  </div>
+
+  <div id="oldman">
+    <div id="om-staff"></div>
+    <div id="om-body"></div>
+    <div id="om-beard"></div>
+    <div id="om-head"></div>
+  </div>
+
+  <div id="dialog">
+    <span id="dialog-text">To wield the power of the ancient relic, you must hold the orb.
+    But all power comes with a price.</span>
+    <small>the keeper of the relic</small>
+  </div>
+
+  <div id="choices">
+    <button class="choice" id="obtain">Obtain the power</button>
+    <button class="choice" id="leave">Leave</button>
+  </div>
+
+  <div id="grab"><div class="arm"></div><div class="hand"></div></div>
+</div>
+
+<div id="flash"></div>
+
+<div id="fade">
+  <div id="fade-text">you turned back.<br>perhaps that was wisdom.</div>
+  <button id="reconsider">… reconsider?</button>
+</div>
+
+<!-- ===================== POWER MODE ===================== -->
+<div id="powerscene">
+  <canvas id="stage"></canvas>
+  <div class="phud" id="vit-wrap">vitality — the price
+    <div id="vit-bar"><div id="vit-fill"></div></div>
+  </div>
+  <div class="phud" id="powers">
+    <div class="p" data-k="blast">fist — energy blast</div>
+    <div class="p" data-k="fire">open palm — flame stream</div>
+    <div class="p" data-k="shield">fists together — shield</div>
+    <div class="p" data-k="sword">peace sign — summon / dismiss blade</div>
+  </div>
+  <div class="phud" id="voice-hud">
+    voice: <em id="voice-state">…</em><br>
+    <span style="opacity:.7">speak a power's name to amplify it</span><br>
+    <span style="opacity:.7">ESC — return the power · M — sound</span>
+  </div>
+  <div class="phud" id="amp-banner">amplified</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+<script>
+'use strict';
+
+/* ============================================================
+   THE RELIC — gesture sorcery
+   temple (DOM scene) -> grab the orb -> webcam powers (canvas 2D)
+   powers: fist=blast, palm=fire, fists joined=shield,
+           namaste->part=sword (namaste again to dissolve)
+   vitality drains while casting; empty = the relic rejects you
+   voice (web speech) amplifies a power for a few seconds
+   ============================================================ */
+
+const $=id=>document.getElementById(id);
+const video=$('cam'), canvas=$('stage'), ctx=canvas.getContext('2d');
+const temple=$('temple'), powerscene=$('powerscene');
+const dialogText=$('dialog-text'), choices=$('choices');
+const orb=$('orb'), grab=$('grab'), flash=$('flash');
+const fade=$('fade'), fadeText=$('fade-text'), reconsider=$('reconsider');
+const vitFill=$('vit-fill'), voiceState=$('voice-state'), ampBanner=$('amp-banner');
+const pEls={blast:document.querySelector('[data-k="blast"]'),
+            fire: document.querySelector('[data-k="fire"]'),
+            shield:document.querySelector('[data-k="shield"]'),
+            sword:document.querySelector('[data-k="sword"]')};
+
+let W=0,H=0,DPR=1,SC=1;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,1.75);
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  SC=Math.min(W,H)/800;            /* global scale for effect sizes */
+}
+window.addEventListener('resize',resize); resize();
+
+/* dust motes in the temple */
+for(let i=0;i<26;i++){
+  const m=document.createElement('div'); m.className='mote';
+  m.style.left=(5+Math.random()*90)+'%';
+  m.style.top=(5+Math.random()*70)+'%';
+  m.style.setProperty('--dx',(Math.random()*120-60)+'px');
+  m.style.setProperty('--dy',(40+Math.random()*120)+'px');
+  m.style.animationDuration=(7+Math.random()*9)+'s';
+  m.style.animationDelay=(-Math.random()*10)+'s';
+  temple.appendChild(m);
+}
+
+/* ---------------- old man's lines ---------------- */
+const KEEPER = {
+  first:  'To wield the power of the ancient relic, you must hold the orb. But all power comes with a price.',
+  esc: [
+    'Even you could not contain the power for too long.',
+    'Back so soon? The orb remembers you.',
+    'You again. Of course.',
+    'It always finds its way back to the pedestal. They always find their way back to it.',
+  ],
+  drained: 'The relic takes more than it gives. I did warn you.',
+  offer: 'It waits, as it has always waited. Will you hold it again?',
+};
+let visits=0;
+
+/* ---------------- hand tracking ---------------- */
+let handsRaw=[], mpReady=false, mp=null;
+const handMemory={};
+let vmap={dw:0,dh:0,ox:0,oy:0};
+function updateVmap(){
+  const vw=video.videoWidth||1280, vh=video.videoHeight||720;
+  const s=Math.max(W/vw,H/vh);
+  vmap.dw=vw*s; vmap.dh=vh*s;
+  vmap.ox=(W-vmap.dw)/2; vmap.oy=(H-vmap.dh)/2;
+}
+const toScreen=lm=>({x:vmap.ox+(1-lm.x)*vmap.dw, y:vmap.oy+lm.y*vmap.dh});
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+function classify(lm){
+  const size=dist(lm[0],lm[9])||1;
+  const palm={x:(lm[0].x+lm[5].x+lm[9].x+lm[13].x+lm[17].x)/5,
+              y:(lm[0].y+lm[5].y+lm[9].y+lm[13].y+lm[17].y)/5};
+  const ext=(t,p)=>dist(lm[t],lm[0])>dist(lm[p],lm[0])*1.12;
+  const f=[ext(8,6),ext(12,10),ext(16,14),ext(20,18)]; /* index,middle,ring,pinky */
+  const nUp=f.filter(Boolean).length;
+  let gesture='none';
+  if(nUp===0) gesture='fist';
+  else if(f[0]&&f[1]&&!f[2]&&!f[3]) gesture='peace';
+  else if(nUp>=3) gesture='open';
+  /* aim: wrist -> middle knuckle */
+  let dx=lm[9].x-lm[0].x, dy=lm[9].y-lm[0].y;
+  const dl=Math.hypot(dx,dy)||1; dx/=dl; dy/=dl;
+  return {palm,size,gesture,dir:{x:dx,y:dy},tip:lm[12]};
+}
+
+function onResults(res){
+  updateVmap();
+  handsRaw=[];
+  if(!res.multiHandLandmarks) return;
+  res.multiHandLandmarks.forEach((lmRaw,i)=>{
+    const label=(res.multiHandedness&&res.multiHandedness[i])
+                  ? res.multiHandedness[i].label : ('H'+i);
+    const lm=lmRaw.map(toScreen);
+    const h=classify(lm); h.label=label;
+    const mem=handMemory[label]||(handMemory[label]={});
+    if(h.gesture===mem.pending) mem.count=(mem.count||0)+1;
+    else{mem.pending=h.gesture; mem.count=1;}
+    if(mem.count>=3) mem.stable=mem.pending;
+    h.gesture=mem.stable||'none';
+    if(mem.dir){ /* aim smoothing */
+      h.dir={x:mem.dir.x*0.6+h.dir.x*0.4, y:mem.dir.y*0.6+h.dir.y*0.4};
+      const l=Math.hypot(h.dir.x,h.dir.y)||1; h.dir.x/=l; h.dir.y/=l;
+    }
+    mem.dir=h.dir;
+    if(mem.lastPalm) h.speed=dist(h.palm,mem.lastPalm); else h.speed=0;
+    mem.lastPalm={...h.palm};
+    handsRaw.push(h);
+  });
+}
+
+/* ---------------- power state ---------------- */
+const ST={
+  running:false,
+  sword:{active:false, hand:null, visible:false, lastToggle:0,
+         trail:[], lastSwoosh:0},
+  amp:{blast:0, fire:0, shield:0, sword:0},   /* timestamps until amplified */
+  shield:{v:0, x:0.5, y:0.5, r:0},
+  blast:{}, fire:{},                           /* per-hand charge, keyed by label */
+  vitality:100,
+};
+const now=()=>performance.now();
+const ampOn=k=>now()<ST.amp[k];
+
+/* ---------------- particles ---------------- */
+const parts=[];
+const MAXP=950;
+function spawn(p){ if(parts.length<MAXP) parts.push(p); }
+function firePart(x,y,dx,dy,amp){
+  const sp=(5+Math.random()*9)*(amp?1.5:1)*SC*1.6;
+  const a=Math.atan2(dy,dx)+(Math.random()-0.5)*0.55;
+  spawn({x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-0.4,
+    life:1, decay:0.022+Math.random()*0.02,
+    size:(9+Math.random()*16)*(amp?1.45:1)*SC, kind:'fire'});
+}
+function sparkPart(x,y,hue,spread){
+  const a=Math.random()*Math.PI*2, sp=(1+Math.random()*4)*SC*(spread||1);
+  spawn({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+    life:1, decay:0.04+Math.random()*0.05,
+    size:(2+Math.random()*3.5)*SC, hue, kind:'spark'});
+}
+function updateParticles(){
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.kind==='fire'){ p.vy-=0.12; p.vx*=0.985; p.size*=0.985; }
+    p.life-=p.decay;
+    if(p.life<=0) parts.splice(i,1);
+  }
+}
+function drawParticles(){
+  ctx.globalCompositeOperation='lighter';
+  for(const p of parts){
+    if(p.kind==='fire'){
+      /* white -> yellow -> orange -> red over life */
+      const t=1-p.life;
+      const hue=55-45*t, light=72-30*t;
+      ctx.fillStyle=`hsla(${hue},100%,${light}%,${0.5*p.life})`;
+    } else {
+      ctx.fillStyle=`hsla(${p.hue},95%,68%,${0.85*p.life})`;
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0.5,p.size*p.life),0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';
+}
+
+/* ---------------- powers: update + draw ---------------- */
+let activeDrain=0;
+function updatePowers(dt,t){
+  activeDrain=0;
+  const opens=handsRaw.filter(h=>h.gesture==='open');
+  const fists=handsRaw.filter(h=>h.gesture==='fist');
+  const S=ST.sword;
+
+  /* ---- sword: a held peace sign summons / dismisses the blade ---- */
+  for(const h of handsRaw){
+    const mem=handMemory[h.label]||{};
+    if(h.gesture==='peace'){
+      mem.peaceFrames=(mem.peaceFrames||0)+1;
+      if(mem.peaceFrames>6 && t-S.lastToggle>900){
+        S.lastToggle=t;
+        if(!S.active){
+          S.active=true; S.hand=h.label; S.trail=[];
+          AUX.shing(1,false);
+          for(let i=0;i<80;i++) sparkPart(h.palm.x,h.palm.y,48,2.5);
+        } else {
+          S.active=false; S.visible=false; S.trail=[];
+          AUX.shing(0.6,true);
+          for(let i=0;i<60;i++) sparkPart(h.palm.x,h.palm.y,48,2.2);
+        }
+      }
+    } else mem.peaceFrames=0;
+  }
+
+  /* ---- shield: two fists joined ---- */
+  let shieldOn=false;
+  if(fists.length>=2){
+    const d=dist(fists[0].palm,fists[1].palm);
+    if(d<Math.min(W,H)*0.26){
+      shieldOn=true;
+      ST.shield.x=(fists[0].palm.x+fists[1].palm.x)/2;
+      ST.shield.y=(fists[0].palm.y+fists[1].palm.y)/2;
+    }
+  }
+  ST.shield.v=Math.max(0,Math.min(1, ST.shield.v+(shieldOn?dt*4:-dt*3)));
+  if(ST.shield.v>0.05) activeDrain+= (ampOn('shield')?12:8)*ST.shield.v;
+
+  /* ---- per-hand blast / fire (skip the sword hand; skip when shield) ---- */
+  for(const h of handsRaw){
+    const isSwordHand=S.active&&h.label===S.hand;
+    const key=h.label;
+    ST.blast[key]=ST.blast[key]||{c:0}; ST.fire[key]=ST.fire[key]||{c:0};
+    const B=ST.blast[key], F=ST.fire[key];
+
+    if(!isSwordHand && !shieldOn && h.gesture==='fist' && fists.length<2){
+      B.c=Math.min(1,B.c+dt*2.2); B.h=h;
+      activeDrain+=(ampOn('blast')?22:14)*B.c;
+    } else B.c=Math.max(0,B.c-dt*4);
+
+    if(!isSwordHand && h.gesture==='open'){
+      F.c=Math.min(1,F.c+dt*3); F.h=h;
+      activeDrain+=(ampOn('fire')?18:12)*F.c;
+      const n=Math.round((ampOn('fire')?16:9)*F.c);
+      for(let i=0;i<n;i++) firePart(h.palm.x+h.dir.x*30*SC, h.palm.y+h.dir.y*30*SC,
+                                    h.dir.x, h.dir.y, ampOn('fire'));
+    } else F.c=Math.max(0,F.c-dt*5);
+  }
+
+  /* ---- decay charges for hands that left the frame ----
+     (without this, dropping your hand out of view froze the
+      beam/fire at full charge, visual and sound stuck on) */
+  const seen=new Set(handsRaw.map(h=>h.label));
+  for(const k in ST.blast) if(!seen.has(k)) ST.blast[k].c=Math.max(0,ST.blast[k].c-dt*4);
+  for(const k in ST.fire)  if(!seen.has(k)) ST.fire[k].c =Math.max(0,ST.fire[k].c -dt*5);
+
+  /* ---- sword binding + trail ---- */
+  if(S.active){
+    const h=handsRaw.find(x=>x.label===S.hand);
+    S.visible=!!h;
+    if(h){
+      const len=(ampOn('sword')?0.5:0.4)*Math.min(W,H);
+      const hx=h.palm.x, hy=h.palm.y;
+      const tx=hx+h.dir.x*len, ty=hy+h.dir.y*len;
+      S.pos={hx,hy,tx,ty,dir:h.dir};
+      S.trail.push({hx,hy,tx,ty,t});
+      while(S.trail.length>14) S.trail.shift();
+      activeDrain+=ampOn('sword')?6:4;
+      /* swoosh on fast swings */
+      if(h.speed>34*SC && t-S.lastSwoosh>260){ S.lastSwoosh=t; AUX.swoosh(Math.min(1,h.speed/(90*SC))); }
+    }
+  }
+
+  /* HUD power lights */
+  pEls.blast.classList.toggle('active', Object.values(ST.blast).some(b=>b.c>0.1));
+  pEls.fire .classList.toggle('active', Object.values(ST.fire).some(f=>f.c>0.1));
+  pEls.shield.classList.toggle('active', ST.shield.v>0.1);
+  pEls.sword.classList.toggle('active', S.active);
+  ampBanner.classList.toggle('show', ['blast','fire','shield','sword'].some(ampOn));
+
+  /* ---- vitality: the price ---- */
+  ST.vitality += (activeDrain>0 ? -activeDrain : 7) * dt;
+  ST.vitality = Math.max(0, Math.min(100, ST.vitality));
+  vitFill.style.width = ST.vitality+'%';
+  vitFill.style.background = ST.vitality>35
+    ? 'linear-gradient(90deg,#c89a3e,#ffd98a)'
+    : 'linear-gradient(90deg,#a33b22,#ff7a4f)';
+  if(ST.vitality<=0) leavePower('drained');
+}
+
+function drawPowers(t){
+  /* beams first (under particles) */
+  for(const key in ST.blast){
+    const B=ST.blast[key];
+    if(B.c>0.03 && B.h) drawBeam(B.h, B.c, t, ampOn('blast'));
+  }
+  drawParticles();
+  if(ST.shield.v>0.02) drawShield(t);
+  if(ST.sword.active && ST.sword.visible && ST.sword.pos) drawSword(t);
+}
+
+function drawBeam(h,c,t,amp){
+  const ox=h.palm.x+h.dir.x*26*SC, oy=h.palm.y+h.dir.y*26*SC;
+  const len=Math.hypot(W,H);
+  const ex=ox+h.dir.x*len, ey=oy+h.dir.y*len;
+  const wob=Math.sin(t/38)*3*SC;
+  const px=-h.dir.y, py=h.dir.x;
+  const wBase=(amp?26:16)*c*SC;
+  ctx.globalCompositeOperation='lighter';
+  for(const [w,col] of [
+      [wBase*2.6,`rgba(70,140,255,${0.10*c})`],
+      [wBase*1.5,`rgba(94,200,255,${0.28*c})`],
+      [wBase*0.6,`rgba(225,248,255,${0.85*c})`]]){
+    ctx.strokeStyle=col; ctx.lineWidth=Math.max(1,w); ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(ox,oy);
+    ctx.quadraticCurveTo((ox+ex)/2+px*wob,(oy+ey)/2+py*wob, ex,ey);
+    ctx.stroke();
+  }
+  /* muzzle glow + crackle */
+  const g=ctx.createRadialGradient(ox,oy,0,ox,oy,46*c*SC);
+  g.addColorStop(0,`rgba(225,248,255,${0.8*c})`);
+  g.addColorStop(1,'rgba(94,200,255,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ox,oy,46*c*SC,0,Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+  if(Math.random()<c*0.9){
+    const d=Math.random()*len*0.5;
+    sparkPart(ox+h.dir.x*d+(Math.random()-0.5)*22*SC,
+              oy+h.dir.y*d+(Math.random()-0.5)*22*SC, 205, 1.4);
+  }
+}
+
+const RUNES='ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃ';
+function drawShield(t){
+  const v=ST.shield.v, amp=ampOn('shield');
+  const x=ST.shield.x, y=ST.shield.y;
+  const R=(amp?0.30:0.24)*Math.min(W,H)*v;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  /* inner sheen */
+  const g=ctx.createRadialGradient(x,y,R*0.2,x,y,R);
+  g.addColorStop(0,'rgba(120,210,255,0.04)');
+  g.addColorStop(0.85,'rgba(120,210,255,0.10)');
+  g.addColorStop(1,'rgba(170,235,255,0.22)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill();
+  /* rotating rings */
+  for(const [rr,sp,lw,al] of [[1,0.00045,2.5,0.7],[0.84,-0.0007,1.5,0.5],[0.66,0.001,1,0.4]]){
+    ctx.strokeStyle=`rgba(150,225,255,${al*v})`;
+    ctx.lineWidth=lw;
+    ctx.setLineDash([14,9]);
+    ctx.lineDashOffset=t*sp*1000;
+    ctx.beginPath(); ctx.arc(x,y,R*rr,0,Math.PI*2); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  /* runes around the rim */
+  ctx.fillStyle=`rgba(190,240,255,${0.75*v})`;
+  ctx.font=`${Math.round(15*SC+R*0.06)}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const n=10;
+  for(let i=0;i<n;i++){
+    const a=t*0.00035+i*Math.PI*2/n;
+    ctx.fillText(RUNES[i%RUNES.length], x+Math.cos(a)*R*0.92, y+Math.sin(a)*R*0.92);
+  }
+  ctx.restore();
+  ctx.globalCompositeOperation='source-over';
+}
+
+function drawSword(t){
+  const S=ST.sword, P=S.pos, amp=ampOn('sword');
+  ctx.globalCompositeOperation='lighter';
+  /* swing trail */
+  for(let i=1;i<S.trail.length;i++){
+    const a=S.trail[i-1], b=S.trail[i];
+    const al=(i/S.trail.length)*0.22;
+    ctx.fillStyle=`rgba(140,220,255,${al})`;
+    ctx.beginPath();
+    ctx.moveTo(a.hx,a.hy); ctx.lineTo(a.tx,a.ty);
+    ctx.lineTo(b.tx,b.ty); ctx.lineTo(b.hx,b.hy);
+    ctx.closePath(); ctx.fill();
+  }
+  const px=-P.dir.y, py=P.dir.x;
+  const bw=(amp?9:6.5)*SC;
+  /* blade: layered glow */
+  for(const [w,col] of [
+      [bw*4,`rgba(110,190,255,0.16)`],
+      [bw*2,`rgba(160,225,255,0.5)`],
+      [bw*0.8,`rgba(245,252,255,0.95)`]]){
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(P.hx+P.dir.x*30*SC,P.hy+P.dir.y*30*SC);
+    ctx.lineTo(P.tx,P.ty); ctx.stroke();
+  }
+  ctx.globalCompositeOperation='source-over';
+  /* crossguard + grip */
+  ctx.strokeStyle='#c89a3e'; ctx.lineWidth=5*SC; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(P.hx+P.dir.x*30*SC-px*16*SC, P.hy+P.dir.y*30*SC-py*16*SC);
+  ctx.lineTo(P.hx+P.dir.x*30*SC+px*16*SC, P.hy+P.dir.y*30*SC+py*16*SC);
+  ctx.stroke();
+  ctx.strokeStyle='#54401d'; ctx.lineWidth=7*SC;
+  ctx.beginPath();
+  ctx.moveTo(P.hx,P.hy);
+  ctx.lineTo(P.hx+P.dir.x*28*SC,P.hy+P.dir.y*28*SC);
+  ctx.stroke();
+  /* sparkle at the tip */
+  if(Math.random()<0.4) sparkPart(P.tx,P.ty,205,0.9);
+}
+
+/* ---------------- audio ---------------- */
+const AU={ctx:null,on:true};
+const AUX={shing:()=>{},swoosh:()=>{}};
+function initAudio(){
+  if(AU.ctx) return;
+  const C=new (window.AudioContext||window.webkitAudioContext)();
+  AU.ctx=C;
+  AU.master=C.createGain(); AU.master.gain.value=0.9;
+  const comp=C.createDynamicsCompressor();
+  AU.master.connect(comp); comp.connect(C.destination);
+
+  /* temple drone: warm fifth */
+  AU.templeGain=C.createGain(); AU.templeGain.gain.value=0.05;
+  AU.templeGain.connect(AU.master);
+  [82.4,123.5,164.8].forEach((f,i)=>{
+    const o=C.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=C.createGain(); g.gain.value=i===0?1:0.4;
+    o.connect(g); g.connect(AU.templeGain); o.start();
+  });
+
+  const len=C.sampleRate*2, buf=C.createBuffer(1,len,C.sampleRate);
+  const dd=buf.getChannelData(0);
+  for(let i=0;i<len;i++) dd[i]=Math.random()*2-1;
+  AU.noise=buf;
+
+  /* fire roar */
+  const fs=C.createBufferSource(); fs.buffer=buf; fs.loop=true;
+  AU.fireF=C.createBiquadFilter(); AU.fireF.type='lowpass'; AU.fireF.frequency.value=420;
+  AU.fireG=C.createGain(); AU.fireG.gain.value=0;
+  fs.connect(AU.fireF); AU.fireF.connect(AU.fireG); AU.fireG.connect(AU.master); fs.start();
+
+  /* beam hum */
+  AU.beamO=C.createOscillator(); AU.beamO.type='sawtooth'; AU.beamO.frequency.value=85;
+  AU.beamF=C.createBiquadFilter(); AU.beamF.type='lowpass'; AU.beamF.frequency.value=500;
+  AU.beamG=C.createGain(); AU.beamG.gain.value=0;
+  AU.beamO.connect(AU.beamF); AU.beamF.connect(AU.beamG);
+  AU.beamG.connect(AU.master); AU.beamO.start();
+
+  /* shield shimmer — tremolo modulates pitch (vibrato), NOT gain,
+     so it is truly silent when the shield is down */
+  AU.shO=C.createOscillator(); AU.shO.type='sine'; AU.shO.frequency.value=980;
+  const trem=C.createOscillator(); trem.frequency.value=6;
+  const tremG=C.createGain(); tremG.gain.value=22;
+  trem.connect(tremG); tremG.connect(AU.shO.frequency);
+  AU.shG=C.createGain(); AU.shG.gain.value=0;
+  AU.shO.connect(AU.shG); AU.shG.connect(AU.master);
+  AU.shO.start(); trem.start();
+
+  /* sword passive hum */
+  AU.swO=C.createOscillator(); AU.swO.type='triangle'; AU.swO.frequency.value=300;
+  AU.swG=C.createGain(); AU.swG.gain.value=0;
+  AU.swO.connect(AU.swG); AU.swG.connect(AU.master); AU.swO.start();
+
+  AUX.shing=(v,down)=>{ /* summon / dissolve */
+    const t=C.currentTime;
+    const o=C.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(down?900:420,t);
+    o.frequency.exponentialRampToValueAtTime(down?320:1400,t+0.28);
+    const g=C.createGain();
+    g.gain.setValueAtTime(0.16*v,t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
+    const ns=C.createBufferSource(); ns.buffer=AU.noise;
+    const nf=C.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=3200; nf.Q.value=2;
+    const ng=C.createGain();
+    ng.gain.setValueAtTime(0.1*v,t);
+    ng.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+    o.connect(g); g.connect(AU.master);
+    ns.connect(nf); nf.connect(ng); ng.connect(AU.master);
+    o.start(t); o.stop(t+0.75); ns.start(t,Math.random(),0.4);
+  };
+  AUX.swoosh=v=>{
+    const t=C.currentTime;
+    const ns=C.createBufferSource(); ns.buffer=AU.noise;
+    ns.playbackRate.value=0.8;
+    const nf=C.createBiquadFilter(); nf.type='bandpass'; nf.Q.value=1.4;
+    nf.frequency.setValueAtTime(500,t);
+    nf.frequency.exponentialRampToValueAtTime(2400,t+0.16);
+    const g=C.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.18*v,t+0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+    ns.connect(nf); nf.connect(g); g.connect(AU.master);
+    ns.start(t,Math.random(),0.35);
+  };
+}
+function updateAudio(){
+  if(!AU.ctx) return;
+  const C=AU.ctx,t=C.currentTime,S=0.07;
+  const fire=Math.max(0,...Object.values(ST.fire).map(f=>f.c||0));
+  const blast=Math.max(0,...Object.values(ST.blast).map(b=>b.c||0));
+  AU.fireG.gain.setTargetAtTime(0.22*fire*(ampOn('fire')?1.4:1),t,S);
+  AU.fireF.frequency.setTargetAtTime(380+fire*700,t,S);
+  AU.beamG.gain.setTargetAtTime(0.14*blast*(ampOn('blast')?1.4:1),t,S);
+  AU.beamO.frequency.setTargetAtTime(70+blast*160,t,S);
+  AU.beamF.frequency.setTargetAtTime(400+blast*1600,t,S);
+  AU.shG.gain.setTargetAtTime(0.05*ST.shield.v,t,S);
+  AU.swG.gain.setTargetAtTime(ST.sword.active?0.03:0,t,S);
+  AU.templeGain.gain.setTargetAtTime(ST.running?0:0.05,t,0.5);
+}
+
+/* ---------------- voice: speak to amplify ---------------- */
+let rec=null;
+function initVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ voiceState.textContent='unavailable'; return; }
+  rec=new SR();
+  rec.continuous=true; rec.interimResults=true; rec.lang='en-IN';
+  rec.onresult=e=>{
+    let txt='';
+    for(let i=e.resultIndex;i<e.results.length;i++) txt+=e.results[i][0].transcript;
+    txt=txt.toLowerCase();
+    const until=now()+4500;
+    if(/blast|beam|energy/.test(txt))  ST.amp.blast=until;
+    if(/fire|flame|agni/.test(txt))    ST.amp.fire=until;
+    if(/shield|protect/.test(txt))     ST.amp.shield=until;
+    if(/sword|blade/.test(txt))        ST.amp.sword=until;
+  };
+  rec.onstart=()=>voiceState.textContent='listening';
+  rec.onerror=e=>{ if(e.error==='not-allowed') voiceState.textContent='mic blocked'; };
+  rec.onend=()=>{ if(ST.running){ try{rec.start();}catch(_){} } };
+  try{ rec.start(); }catch(_){ voiceState.textContent='unavailable'; }
+}
+function stopVoice(){ if(rec){ try{rec.onend=null; rec.stop();}catch(_){}} rec=null;
+  voiceState.textContent='…'; }
+
+/* ---------------- scene flow ---------------- */
+function setDialog(text){ dialogText.textContent=text; }
+
+$('obtain').addEventListener('click', async ()=>{
+  initAudio(); if(AU.ctx.state==='suspended') AU.ctx.resume();
+  choices.style.visibility='hidden';
+  setDialog('Then hold it — and hold on to yourself.');
+  /* hand rises and takes the orb */
+  grab.classList.add('go');
+  setTimeout(()=>{ orb.classList.add('gone'); flash.classList.add('go'); }, 1350);
+  setTimeout(enterPower, 1800);
+});
+
+$('leave').addEventListener('click', ()=>{
+  initAudio(); if(AU.ctx&&AU.ctx.state==='suspended') AU.ctx.resume();
+  fade.classList.add('show');
+  setTimeout(()=>{ reconsider.style.display='inline-block'; }, 3800);
+});
+reconsider.addEventListener('click', ()=>{
+  fade.classList.remove('show');
+  reconsider.style.display='none';
+  setDialog(KEEPER.offer);
+});
+
+async function enterPower(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false});
+    video.srcObject=stream;
+    await video.play();
+  }catch(e){
+    grab.classList.remove('go'); orb.classList.remove('gone');
+    choices.style.visibility='visible';
+    setDialog('The relic cannot see you. Allow the camera — or download this file and open it directly.');
+    return;
+  }
+  if(!mp){
+    mp=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`});
+    mp.setOptions({maxNumHands:2,modelComplexity:1,
+                   minDetectionConfidence:0.6,minTrackingConfidence:0.5});
+    mp.onResults(onResults);
+    (async function pump(){
+      if(ST.running && video.readyState>=2){ try{ await mp.send({image:video}); }catch(_){} }
+      requestAnimationFrame(pump);
+    })();
+  }
+  ST.vitality=100;
+  ST.sword.active=false; ST.sword.visible=false; ST.sword.trail=[];
+  parts.length=0;
+  temple.classList.add('hidden');
+  powerscene.classList.add('show');
+  ST.running=true;
+  initVoice();
+}
+
+function leavePower(reason){
+  if(!ST.running) return;
+  ST.running=false;
+  stopVoice();
+  /* hard-reset every power and silence its sound layer */
+  for(const k in ST.blast) ST.blast[k].c=0;
+  for(const k in ST.fire)  ST.fire[k].c=0;
+  ST.shield.v=0;
+  ST.sword.active=false; ST.sword.visible=false; ST.sword.trail=[];
+  parts.length=0;
+  if(AU.ctx){
+    const t0=AU.ctx.currentTime;
+    [AU.fireG,AU.beamG,AU.shG,AU.swG].forEach(g=>{ if(g) g.gain.setTargetAtTime(0,t0,0.03); });
+    AU.templeGain.gain.setTargetAtTime(0.05,t0,0.5);
+  }
+  if(video.srcObject){ video.srcObject.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
+  powerscene.classList.remove('show');
+  temple.classList.remove('hidden');
+  grab.classList.remove('go');
+  orb.classList.remove('gone');
+  flash.classList.remove('go');
+  choices.style.visibility='visible';
+  if(reason==='drained') setDialog(KEEPER.drained);
+  else setDialog(KEEPER.esc[Math.min(visits, KEEPER.esc.length-1)]);
+  visits++;
+}
+
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && ST.running) leavePower('esc');
+  if(e.key==='m'||e.key==='M'){
+    AU.on=!AU.on;
+    if(AU.ctx) AU.master.gain.setTargetAtTime(AU.on?0.9:0,AU.ctx.currentTime,0.05);
+  }
+});
+
+/* ---------------- power-mode render loop ---------------- */
+let last=performance.now();
+function loop(t){
+  requestAnimationFrame(loop);
+  if(!ST.running) return;
+  let dt=Math.min((t-last)/1000,1/30); last=t;
+  updateVmap();
+
+  /* webcam, mirrored cover-fit, slightly dimmed and warmed */
+  ctx.clearRect(0,0,W,H);
+  if(video.readyState>=2){
+    ctx.save();
+    ctx.translate(vmap.ox+vmap.dw,vmap.oy);
+    ctx.scale(-1,1);
+    ctx.drawImage(video,0,0,vmap.dw,vmap.dh);
+    ctx.restore();
+  }
+  ctx.fillStyle='rgba(14,8,2,0.32)';
+  ctx.fillRect(0,0,W,H);
+
+  updatePowers(dt,t);
+  updateParticles();
+  drawPowers(t);
+  updateAudio();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
