@@ -146,4 +146,3 @@ MIT — do whatever you want with it. If you build something cool on top of this
 
 ---
 
-*Built with Claude Sonnet as a creative coding experiment — gesture tracking, WebGL shaders, synthesized audio, and a whole ancient temple, all in one HTML file.*
